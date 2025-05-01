@@ -9,7 +9,18 @@ import './index.css';
 
 function AppWrapper() {
   const [flights, setFlights] = useState([]);
+  const [visibleCount, setVisibleCount] = useState(5);
   const navigate = useNavigate();
+
+  const handleSort = (type) => {
+    let sorted = [...flights];
+    if (type === 'price') {
+      sorted.sort((a, b) => a.price - b.price);
+    } else if (type === 'time') {
+      sorted.sort((a, b) => new Date(a.departure?.scheduled) - new Date(b.departure?.scheduled));
+    }
+    setFlights(sorted);
+  };
 
   const handleTrackFlight = async (flightNumber) => {
     try {
@@ -51,63 +62,45 @@ Scheduled Arrival: ${data.arrivalTime || 'N/A'}`);
         <Route
           path="/"
           element={
-            <div className="container py-5">
-              <FlightSearch onSearch={setFlights} />
-              <div className="row mt-4">
-                {flights.length === 0 ? (
-                  <p className="text-light text-center">No results yet.</p>
-                ) : (
-                  flights.map((flight, index) => (
-                    <div key={index} className="col-md-6 col-lg-4 mb-4">
-                      <div className="card h-100 text-white">
-                        <div className="card-body">
-                          <h5 className="card-title">
-                            ✈️ {flight.airline?.name || 'Unknown Airline'} ({flight.flight?.iata || flight.flight?.number || 'N/A'})
-                          </h5>
-                          <p className="card-text">
-                            <strong>{flight.departure?.airport || 'Unknown Departure'}</strong> →
-                            <strong> {flight.arrival?.airport || 'Unknown Arrival'}</strong>
-                          </p>
-                          <p className="card-text">
-                            🕑 <strong>Departure:</strong>{' '}
-                            {flight.departure?.scheduled
-                              ? new Date(flight.departure.scheduled).toLocaleTimeString()
-                              : 'N/A'}
-                            <br />
-                            🕓 <strong>Arrival:</strong>{' '}
-                            {flight.arrival?.scheduled
-                              ? new Date(flight.arrival.scheduled).toLocaleTimeString()
-                              : 'N/A'}
-                          </p>
-                          <p className="card-text">
-                            📅 <strong>Date:</strong> {flight.flight_date}
-                            <br />
-                            📊 <strong>Status:</strong> {flight.flight_status}
-                          </p>
-                          <p className="card-text">
-                            💵 <strong>Estimated Price:</strong> ₹{Math.floor(Math.random() * 5000) + 3000}
-                          </p>
-                        </div>
+            <div className="container py-4">
+              <FlightSearch onSearch={setFlights} onSort={handleSort} />
 
-                        <div className="card-footer d-flex justify-content-between">
-                          <button
-                            className="btn btn-outline-light btn-sm"
-                            onClick={() => handleTrackFlight(flight.flight?.iata)}
-                          >
-                            📡 Track Flight
-                          </button>
-                          <button
-                            className="btn btn-success btn-sm"
-                            onClick={() => navigate('/confirmation', { state: { flight } })}
-                          >
-                            Book Now
-                          </button>
-                        </div>
-                      </div>
+              <div className="scroll-container mt-4">
+                {flights.slice(0, visibleCount).map((flight, index) => (
+                  <div key={index} className="card text-white bg-dark p-3 mx-2 shadow" style={{ minWidth: '320px' }}>
+                    <h5>{flight.airline?.name} ({flight.flight?.iata})</h5>
+                    <p>{flight.departure?.airport} → {flight.arrival?.airport}</p>
+                    <p>Date: {flight.flight_date}</p>
+                    <p>Departs: {new Date(flight.departure?.scheduled).toLocaleTimeString()}</p>
+                    <p>Price: ₹{flight.price}</p>
+                    <div className="d-flex justify-content-between mt-2">
+                      <button
+                        className="btn btn-outline-light btn-sm"
+                        onClick={() => handleTrackFlight(flight.flight?.iata)}
+                      >
+                        📡 Track
+                      </button>
+                      <button
+                        className="btn btn-success btn-sm"
+                        onClick={() => navigate('/confirmation', { state: { flight } })}
+                      >
+                        Book Now
+                      </button>
                     </div>
-                  ))
-                )}
+                  </div>
+                ))}
               </div>
+
+              {visibleCount < flights.length && (
+                <div className="text-center mt-3">
+                  <button
+                    className="btn btn-outline-light"
+                    onClick={() => setVisibleCount(visibleCount + 5)}
+                  >
+                    Show More
+                  </button>
+                </div>
+              )}
             </div>
           }
         />
