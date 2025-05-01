@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-function FlightSearch({ onSearch }) {
+function FlightSearch({ onSearch, onSort }) {
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
+  const [flightDate, setFlightDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleSearch = async () => {
-    if (!origin || !destination) {
-      setError('Please enter both origin and destination IATA codes.');
+    if (!origin || !destination || !flightDate) {
+      setError('Please enter origin, destination, and date.');
       return;
     }
 
@@ -18,22 +19,23 @@ function FlightSearch({ onSearch }) {
 
     try {
       const response = await axios.get(
-        `http://localhost:5000/api/flights?origin=${origin}&destination=${destination}`
+        `http://localhost:5000/api/flights?origin=${origin}&destination=${destination}&date=${flightDate}`
       );
 
-      console.log('🚀 Flights response:', response.data);
+      const flights = Array.isArray(response.data.data)
+        ? response.data.data
+        : response.data;
 
-      // Most APIs return results inside `data.data`
-      if (response.data && Array.isArray(response.data.data)) {
-        onSearch(response.data.data);
-      } else if (Array.isArray(response.data)) {
-        onSearch(response.data); // Fallback for custom API
-      } else {
-        onSearch([]); // No valid data
-      }
+      const flightsWithDate = flights.map(f => ({
+        ...f,
+        flight_date: flightDate,
+        price: Math.floor(Math.random() * 5000) + 3000
+      }));
+
+      onSearch(flightsWithDate);
     } catch (err) {
       console.error('❌ Error fetching flights:', err);
-      setError('Flight search failed. Please try valid IATA codes like DEL, BOM.');
+      setError('Flight search failed. Try valid inputs.');
     } finally {
       setLoading(false);
     }
@@ -50,11 +52,23 @@ function FlightSearch({ onSearch }) {
         onChange={(e) => setOrigin(e.target.value.toUpperCase())}
       />
       <input
-        className="form-control mb-3"
+        className="form-control mb-2"
         placeholder="Destination (e.g. BOM)"
         value={destination}
         onChange={(e) => setDestination(e.target.value.toUpperCase())}
       />
+      <input
+        type="date"
+        className="form-control mb-2"
+        value={flightDate}
+        onChange={(e) => setFlightDate(e.target.value)}
+      />
+
+      <select className="form-select mb-3" onChange={(e) => onSort(e.target.value)}>
+        <option value="">Sort by</option>
+        <option value="price">Price (Low to High)</option>
+        <option value="time">Departure Time</option>
+      </select>
 
       <button className="btn btn-primary" onClick={handleSearch} disabled={loading}>
         {loading ? 'Searching...' : 'Search'}
