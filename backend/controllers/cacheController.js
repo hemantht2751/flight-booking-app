@@ -1,4 +1,4 @@
-const { poolPromise } = require('../db/db');
+const { poolPromise } = require('../db');
 
 const checkCachedFlights = async (origin, destination) => {
   const pool = await poolPromise;
